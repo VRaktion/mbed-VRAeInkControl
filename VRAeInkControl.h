@@ -2,6 +2,7 @@
 #define VRA_EINK_CONTROL_H
 
 #include "BLEService.h"
+#include "BLEBulkWriteCharacteristic.h"
 
 // #include "VRASettings.h"
 // #include "VRAStorage.h"
@@ -29,7 +30,7 @@ public:
     void testPartialDraw();
 
 private:
-    void setFramebufferWriteCb();
+    void recvNewFrabmebufferCb();
 
     void onStateOff();
     void onStateStandby();
@@ -37,12 +38,17 @@ private:
 
     void setFramebufferCb();
 
+    void updateDisplay();
+    void clearFramebuffer();
+
     EventQueue *eq;
     // VRASettings *settings;
     // VRAStorage *storage;
     Epd *epd;
     BLECharacteristic* setFramebufferCharacteristic;
-    unsigned char frame_black[EPD_HEIGHT * EPD_WIDTH / 8];
+    unsigned char framebuffer[EPD_HEIGHT * EPD_WIDTH / 8];
+    static constexpr int refreshCycle{0};
+    int refreshCounter{0};
 };
 
 #endif //VRA_EINK_CONTROL_H

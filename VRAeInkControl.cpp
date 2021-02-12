@@ -11,11 +11,11 @@ VRAeInkControl::VRAeInkControl(
 
 void VRAeInkControl::init(){
     printf("[eInkCtrl] init\r\n");
-    memset(this->frame_black, 0xFF, sizeof(unsigned char) * EPD_HEIGHT * EPD_WIDTH / 8);
+    memset(this->framebuffer, 0xFF, sizeof(unsigned char) * EPD_HEIGHT * EPD_WIDTH / 8);
+    this->epd->LDirInit();
+    // this->testDraw();
 
-    this->testDraw();
-
-    this->eq->call_in(10000, callback(this, &VRAeInkControl::testPartialDraw));
+    // this->eq->call_in(10000, callback(this, &VRAeInkControl::testPartialDraw));
     // if (this->epd->HDirInit() != 0)
     // {
     //     printf("Init EPD not successful\r\n");
@@ -25,47 +25,54 @@ void VRAeInkControl::init(){
 
 void VRAeInkControl::initCharacteristics(){
     printf("[eInkCtrl] init Characteristics\r\n");
-    this->setFramebufferCharacteristic = new BLECharacteristic(
+    this->setFramebufferCharacteristic = new BLEBulkWriteCharacteristic(
             (uint16_t) VRAeInkControl::Characteristics::SetFramebuffer,
-            GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ 
-            | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE,
-            CHAR_LEN_SET_FB//size
+            this->framebuffer,
+            EPD_HEIGHT * EPD_WIDTH / 8,
+            this->eq,
+            callback(this, &VRAeInkControl::recvNewFrabmebufferCb)
         );
     this->addCharacteristic(
         this->setFramebufferCharacteristic
         );
-    this->setFramebufferCharacteristic->setWriteCallback(
-        new Callback<void(void)>(this, &VRAeInkControl::setFramebufferWriteCb));
 }
 
 void VRAeInkControl::testDraw(){
     this->epd->LDirInit();
-    this->epd->DrawRectangle(frame_black, 10, 60, 50, 110, COLORED);
-    this->epd->DrawLine(frame_black, 10, 60, 50, 110, COLORED);
-    this->epd->DrawLine(frame_black, 50, 60, 10, 110, COLORED);
-    this->epd->DrawCircle(frame_black, 120, 80, 30, COLORED);
-    this->epd->DrawFilledRectangle(frame_black, 10, 130, 50, 180, COLORED);
-    this->epd->DrawFilledRectangle(frame_black, 0, 6, 200, 26, COLORED);
-    this->epd->DrawFilledCircle(frame_black, 120, 150, 30, COLORED);
+    this->epd->DrawRectangle(framebuffer, 10, 60, 50, 110, COLORED);
+    this->epd->DrawLine(framebuffer, 10, 60, 50, 110, COLORED);
+    this->epd->DrawLine(framebuffer, 50, 60, 10, 110, COLORED);
+    this->epd->DrawCircle(framebuffer, 120, 80, 30, COLORED);
+    this->epd->DrawFilledRectangle(framebuffer, 10, 130, 50, 180, COLORED);
+    this->epd->DrawFilledRectangle(framebuffer, 0, 6, 200, 26, COLORED);
+    this->epd->DrawFilledCircle(framebuffer, 120, 150, 30, COLORED);
 
     /*Write strings to the buffer */
-    this->epd->DrawStringAt(frame_black, 30, 30, "e-Paper Demo", &Font16, COLORED);
+    this->epd->DrawStringAt(framebuffer, 30, 30, "e-Paper Demo", &Font16, COLORED);
 
-    this->epd->DrawStringAt(frame_black, 28, 10, "Hello world!", &Font16, UNCOLORED);
-
-    this->epd->Display(frame_black);
-
-    this->eq->call_in(3000, callback(this->epd, &Epd::Sleep));
+    this->epd->DrawStringAt(framebuffer, 28, 10, "Hello world!", &Font16, UNCOLORED);
+    this->updateDisplay();
 }
 
 void VRAeInkControl::testPartialDraw(){
     this->epd->LDirInit();
-    // memset(this->frame_black, 0xFF, sizeof(unsigned char) * EPD_HEIGHT * EPD_WIDTH / 8);
-    this->epd->ClearFramebuffer(frame_black, UNCOLORED);
-    this->epd->DrawFilledRectangle(frame_black, 20, 140, 60, 190, COLORED);
-    this->epd->DisplayPart(frame_black);//Partial Refresh
-    // this->epd->Display(frame_black);//Full Refresh
-    this->eq->call_in(5000, callback(this->epd, &Epd::Sleep));
+    this->clearFramebuffer();
+    this->epd->DrawFilledRectangle(framebuffer, 20, 140, 60, 190, COLORED);
+    this->updateDisplay();
+}
+
+void VRAeInkControl::updateDisplay(){
+    if(++this->refreshCounter > this->refreshCycle){
+        this->refreshCounter = 0;
+        this->epd->Display(this->framebuffer);//Full Refresh
+    }else{
+        this->epd->DisplayPart(this->framebuffer);//Partial Refresh
+    }
+    // this->eq->call_in(5000, callback(this->epd, &Epd::Sleep));
+}
+
+void VRAeInkControl::clearFramebuffer(){
+    memset(this->framebuffer, 0xFF, sizeof(unsigned char) * EPD_HEIGHT * EPD_WIDTH / 8);
 }
 
 void VRAeInkControl::pastBleInit(){
@@ -84,10 +91,7 @@ void VRAeInkControl::onStateOn(){
     printf("[eInkCtrl] on\r\n");
 }
 
-void VRAeInkControl::setFramebufferWriteCb(){
-        BLE &ble = BLE::Instance(BLE::DEFAULT_INSTANCE);
-    uint8_t values[CHAR_LEN_SET_FB];
-    uint16_t length = CHAR_LEN_SET_FB;
-    ble_error_t err = ble.gattServer().read(
-            this->setFramebufferCharacteristic->getValueHandle(), values, &length);
+void VRAeInkControl::recvNewFrabmebufferCb(){
+    printf("new framebuffer received\r\n");
+    this->updateDisplay();
 }
