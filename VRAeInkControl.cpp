@@ -13,7 +13,7 @@ void VRAeInkControl::init(){
     printf("[eInkCtrl] init\r\n");
     memset(this->framebuffer, 0xFF, sizeof(unsigned char) * EPD_HEIGHT * EPD_WIDTH / 8);
     this->epd->LDirInit();
-    // this->testDraw();
+    this->testDraw();
 
     // this->eq->call_in(10000, callback(this, &VRAeInkControl::testPartialDraw));
     // if (this->epd->HDirInit() != 0)
@@ -48,9 +48,9 @@ void VRAeInkControl::testDraw(){
     this->epd->DrawFilledCircle(framebuffer, 120, 150, 30, COLORED);
 
     /*Write strings to the buffer */
-    this->epd->DrawStringAt(framebuffer, 30, 30, "e-Paper Demo", &Font16, COLORED);
+    this->epd->DrawStringAt(framebuffer, 30, 30, "CHEAL5", &Font16, COLORED);
 
-    this->epd->DrawStringAt(framebuffer, 28, 10, "Hello world!", &Font16, UNCOLORED);
+    this->epd->DrawStringAt(framebuffer, 28, 10, "VRaktion", &Font16, UNCOLORED);
     this->updateDisplay();
 }
 
