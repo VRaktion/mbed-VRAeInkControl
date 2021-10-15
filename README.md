@@ -1,2 +1,2 @@
 # mbed-VRAeInkControl
-BLE Service for controlling ePaper Display
+BLE Service for controlling waveshare ePaper Display
